@@ -1,0 +1,7 @@
+{
+    "programmer": "ArduinoISP",
+    "board": "arduino:avr:nano",
+    "configuration": "cpu=atmega328old",
+    "sketch": "DrumShowLED.ino",
+    "port": "COM6"
+}
