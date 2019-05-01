@@ -3,27 +3,27 @@
 #define DATA_PIN 8   // пин подключенный к ленте
 CRGB leds[NUM_LEDS]; // массив для манипуляции светодиодами
 
-int color1 = 20;  // цвет отрезка 1
-int color2 = 120; // цвет отрезка 2
-int color3 = 190; // цвет отрезка 3
+const int sensorPinA = 3; // Куда подключен сенсор А
+const int sensorPinB = 4; // Куда подключен сенсор B
+const int sensorPinC = 5; // Куда подключен сенсор C
+
+int colorA = 96;  // дефолтный цвет отрезка 1
+int colorB = 0;   // дефолтный цвет отрезка 2
+int colorC = 160; // дефолтный цвет отрезка 3
 
 float brightnessA = 0;    // дефолтная яркость A
 float brightnessB = 0;    // дефолтная яркость B
 float brightnessC = 0;    // дефолтная яркость C
 
-float blackoutStep = 1; //доступные шаги затемнения: 0.5, 1, 3, 5, 15, 17, 42.5
+float blackoutStep = 3; //доступные шаги затемнения: 0.5, 1, 3, 5, 15, 17, 42.5
 
 const int modeChangePin = 2; // Куда подключена кнопка смены режимов
+
+int currentMode = 0;  // переменная для переключения режимов
 
 const byte rPin = 13; // Пины индикатора переключения режимов
 const byte gPin = 12; // Пины индикатора переключения режимов
 const byte bPin = 11; // Пины индикатора переключения режимов
-
-int currentMode = 0;  // переменная для переключения режимов
-
-const int sensorPinA = 3; // Куда подключен сенсор А
-const int sensorPinB = 4; // Куда подключен сенсор B
-const int sensorPinC = 5; // Куда подключен сенсор C
 
 int partLength = NUM_LEDS / 3;            // количество светодиодов у каждого барабана
 int startPartA = 0;                       // начало первого отрезка
@@ -42,69 +42,76 @@ void setup() {
   pinMode(sensorPinB, INPUT);      // Вход sensorB
   pinMode(sensorPinC, INPUT);      // Вход sensorC
 
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // декларируем библиотеке - к пину DATA_PIN подключены NUM_LEDS диодов, ассоциированы с массивом leds
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // декларируем библиотеке с чем ей работать
 }
 
 void loop() {
 
-  // по умолчанию все диоды имеют яркость = 0 (полностью темные)
-  fill_solid(&(leds[startPartA]), partLength, CHSV(color1, 255, 0));
-  fill_solid(&(leds[startPartB]), partLength, CHSV(color2, 255, 0));
-  fill_solid(&(leds[startPartC]), partLength, CHSV(color3, 255, 0));
+  // Плавно затемняем все светодиоды у которых не нулевая яркость
+  brightnessA -= blackoutStep;
+  if (brightnessA < 0) {
+    brightnessA = 0;
+  }
+  brightnessB -= blackoutStep;
+  if (brightnessB < 0) {
+    brightnessB = 0;
+  }
+  brightnessC -= blackoutStep;
+  if (brightnessC < 0) {
+    brightnessC = 0;
+  }
+  fill_solid(&(leds[startPartA]), partLength, CHSV(colorA, 255, brightnessA ));
+  fill_solid(&(leds[startPartB]), partLength, CHSV(colorB, 255, brightnessB ));
+  fill_solid(&(leds[startPartC]), partLength, CHSV(colorC, 255, brightnessC ));
+  FastLED.show();
 
-  //  переключалка режимов
+
+  //  ПЕРЕКЛЮЧАЛКА РЕЖИМОВ
   if (digitalRead(modeChangePin)) {
     currentMode += 1;
     if (currentMode > 2) {
       currentMode = 0;
     }
-    while (digitalRead(modeChangePin)) {}
+    while (digitalRead(modeChangePin)) {
+      colorA++;
+      colorB++;
+      colorC++;
+    }
   }
 
   // РЕЖИМ 0 (RED)
   if (currentMode == 0) {
+    digitalWrite( bPin, LOW ); digitalWrite( rPin, HIGH );
 
-    // Индикация текущего режима
-    digitalWrite( bPin, LOW );
-    digitalWrite( rPin, HIGH );
-
-    // Если  сработал сенсор B
     if (digitalRead(sensorPinB)) {
-
-      // яркость на максиум
       brightnessA = 255;
       brightnessB = 255;
       brightnessC = 255;
-      FastLED.show();
-      while (digitalRead(sensorPinB)) {}
-
-      // Затемняем пока не погаснет
-      while (brightnessA > 0) {
-        brightnessA -= blackoutStep;
-        brightnessB -= blackoutStep;
-        brightnessC -= blackoutStep;
-        fill_solid(&(leds[startPartA]), partLength, CHSV(color1, 255, brightnessA));
-        fill_solid(&(leds[startPartB]), partLength, CHSV(color2, 255, brightnessB));
-        fill_solid(&(leds[startPartC]), partLength, CHSV(color3, 255, brightnessC));
-        FastLED.show();
-
-        // если нажали во время затемнения - выход из цикла
-        if (digitalRead(sensorPinB)) {
-          break;
-        }
-      }
     }
   }
-
   // РЕЖИМ 1 (GREEN)
   if (currentMode == 1) {
-    digitalWrite( rPin, LOW );
-    digitalWrite( gPin, HIGH );
-  }
+    digitalWrite( rPin, LOW ); digitalWrite( gPin, HIGH );
 
+    if (digitalRead(sensorPinA)) {
+      brightnessA = 255;
+      brightnessC = 255;
+    }
+    if (digitalRead(sensorPinB)) {
+      brightnessB = 255;
+    }
+  }
   //РЕЖИМ 2 (BLUE)
   if (currentMode == 2) {
-    digitalWrite( gPin, LOW );
-    digitalWrite( bPin, HIGH );
+    digitalWrite( gPin, LOW ); digitalWrite( bPin, HIGH );
+    if (digitalRead(sensorPinA)) {
+      brightnessA = 255;
+    }
+    if (digitalRead(sensorPinB)) {
+      brightnessB = 255;
+    }
+    if (digitalRead(sensorPinC)) {
+      brightnessC = 255;
+    }
   }
 }
