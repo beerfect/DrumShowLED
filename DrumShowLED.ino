@@ -1,8 +1,13 @@
 //ПОДКЛЮЧЕНИЕ БИБЛИОТЕКИ
 #include <FastLED.h>    //подключаем библиотеку
-#define NUM_LEDS 180    // общее количество светодиодов
+#define NUM_LEDS 210  // общее количество светодиодов
 #define DATA_PIN 8      // пин подключенный к ленте
 CRGB leds[NUM_LEDS];    // массив для манипуляции светодиодами
+
+// ПОДКЛЮЧЕНИЕ СЛАЙДЕРОВ
+int sliderPinA = A0; // Куда подключен слайдер А
+int sliderPinB = A1; // Куда подключен слайдер B
+int sliderPinC = A2; // Куда подключен слайдер C
 
 // ПОДКЛЮЧЕНИЕ ДАТЧИКОВ
 const int sensorPinA = 3; // Куда подключен датчик А
@@ -16,52 +21,88 @@ int colorC = 160;         // дефолтный цвет отрезка 3
 float brightnessA = 0;    // дефолтная яркость A
 float brightnessB = 0;    // дефолтная яркость B
 float brightnessC = 0;    // дефолтная яркость C
-float blackoutStep = 3;   //доступные шаги затемнения: 0.5, 1.5, 1, 3, 5, 15, 17, 42.5
+float blackoutStep = 5;   //доступные шаги затемнения: 0.5, 1.5, 1, 3, 5, 15, 17, 42.5
+
+int saturationA = 255;       // насыщенность ленты А
+int saturationB = 255;       // насыщенность ленты B
+int saturationC = 255;       // насыщенность ленты C
 
 //ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
 const int modeChangePin = 2; // Куда подключена кнопка смены режимов
 int currentMode = 0;         // переменная для переключения режимов
-const byte rPin = 13;        // Пины индикатора переключения режимов
-const byte gPin = 12;        // Пины индикатора переключения режимов
-const byte bPin = 11;        // Пины индикатора переключения режимов
-
-// БЕЛЫЙ РЕЖИМ
-const int whiteSwitcherPin = 16; // Куда подключена кнопка переключения белого режима
-const byte whiteSwitchPinR = 17; // Пины индикатора переключения белого режима
-const byte whiteSwitchPinG = 18; // Пины индикатора переключения белого режима
-const byte whiteSwitchPinB = 19; // Пины индикатора переключения белого режима
-bool isWhite = true;             // переменная для переключения белого цвета светодиодов
-int saturation;
 
 //РАСЧЕТЫ
-int partLength = NUM_LEDS / 3;            // количество светодиодов у каждого барабана
-int startPartA = 0;                       // начало первого отрезка
-int startPartB = startPartA + partLength; // начало второго отрезка
-int startPartC = NUM_LEDS - partLength;   // начало третьего отрезка
+int partLength = 60;        // количество светодиодов у каждого барабана
+int startPartA = 30;         // начало первого отрезка
+int startPartB = 90;        // начало второго отрезка
+int startPartC = 150;       // начало третьего отрезка
 
 void setup() {
+  // СЛАЙДЕРЫ ПРОВЕРКА
+  Serial.begin(9600);
+
   // ДЕКЛАРИРУЕМ БИБЛИОТЕКЕ С ЧЕМ ЕЙ РАБОТАТЬ
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 
   // ДАТЧИКИ
   pinMode(sensorPinA, INPUT);
   pinMode(sensorPinB, INPUT);
   pinMode(sensorPinC, INPUT);
-
-  //ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
-  pinMode(modeChangePin, INPUT);   // Вход переключателя режимов
-  pinMode( rPin, OUTPUT );         // Выход индикатора режима
-  pinMode( gPin, OUTPUT );         // Выход индикатора режима
-  pinMode( bPin, OUTPUT );         // Выход индикатора режима
-
-  //БЕЛЫЙ РЕЖИМ
-  pinMode(whiteSwitcherPin, INPUT);           // Вход переключателя белого режима
-  pinMode( whiteSwitchPinR, OUTPUT );         // Выход индикатора белого режима
-  pinMode( whiteSwitchPinG, OUTPUT );         // Выход индикатора белого режима
-  pinMode( whiteSwitchPinB, OUTPUT );         // Выход индикатора белого режима
 }
 
 void loop() {
+
+  //  ПРОВЕРКА СЛАЙДЕРА
+  int sliderValueA = analogRead(sliderPinA);  // получаем текущее значение
+  int sliderValueB = analogRead(sliderPinB);  // получаем текущее значение
+  int sliderValueC = analogRead(sliderPinC);  // получаем текущее значение
+
+  colorA = map(sliderValueA, 0, 1023, 0, 255);
+  colorB = map(sliderValueB, 0, 1023, 0, 255);
+  colorC = map(sliderValueC, 0, 1023, 0, 255);
+
+  //  Плавное появление белого цвета светодиодов в верхнем положении слайдера
+  if (colorA == 255) {
+    saturationA -= 15;
+    if (saturationA < 0) {
+      saturationA = 0;
+    }
+  } else {
+    saturationA += 15;
+    if (saturationA > 255) {
+      saturationA = 255;
+    }
+  }
+
+  if (colorB == 255) {
+    saturationB -= 15;
+    if (saturationB < 0) {
+      saturationB = 0;
+    }
+  } else {
+    saturationB += 15;
+    if (saturationB > 255) {
+      saturationB = 255;
+    }
+  }
+
+  if (colorC == 255) {
+    saturationC -= 15;
+    if (saturationC < 0) {
+      saturationC = 0;
+    }
+  } else {
+    saturationC += 15;
+    if (saturationC > 255) {
+      saturationC = 255;
+    }
+  }
+
+  // Индикация текущих цветов лент
+  fill_solid(&(leds[0]), 1, CHSV(colorA, saturationA, 255 ));
+  fill_solid(&(leds[1]), 1, CHSV(colorB, saturationB, 255 ));
+  fill_solid(&(leds[2]), 1, CHSV(colorC, saturationC, 255 ));
+  FastLED.show();
 
   // Постепенно затемняем все светодиоды у которых не нулевая яркость
   brightnessA -= blackoutStep;
@@ -79,9 +120,10 @@ void loop() {
     brightnessC = 0;
   }
 
-  fill_solid(&(leds[startPartA]), partLength, CHSV(colorA, saturation, brightnessA ));
-  fill_solid(&(leds[startPartB]), partLength, CHSV(colorB, saturation, brightnessB ));
-  fill_solid(&(leds[startPartC]), partLength, CHSV(colorC, saturation, brightnessC ));
+  //Зажигаем светодиоды
+  fill_solid(&(leds[startPartA]), partLength, CHSV(colorA, saturationA, brightnessA ));
+  fill_solid(&(leds[startPartB]), partLength, CHSV(colorB, saturationB, brightnessB ));
+  fill_solid(&(leds[startPartC]), partLength, CHSV(colorC, saturationC, brightnessC ));
   FastLED.show();
 
   //  ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ
@@ -94,20 +136,31 @@ void loop() {
     }
   }
 
-  // Режим 0 (RED indication)
+  // Режим "Один за всех"
   if (currentMode == 0) {
-    digitalWrite( bPin, LOW ); digitalWrite( rPin, HIGH );
 
+    // Отображаем индикацию текущего режима
+    leds[3] = CRGB::Black;
+    leds[4] = 0x111111;
+    leds[5] = CRGB::Black;
+    FastLED.show();
+
+    // Подсвечиваем светодиоды
     if (digitalRead(sensorPinB)) {
       brightnessA = 255;
       brightnessB = 255;
       brightnessC = 255;
     }
   }
-  // Режим 1 (GREEN indication)
-  if (currentMode == 1) {
-    digitalWrite( rPin, LOW ); digitalWrite( gPin, HIGH );
 
+  // Режим "Крайние vs центральный"
+  if (currentMode == 1) {
+
+    // Отображаем индикацию текущего режима
+    leds[3] = 0x111111; leds[4] = 0x111111; leds[5] = CRGB::Black;
+    FastLED.show();
+
+    // Подсвечиваем светодиоды
     if (digitalRead(sensorPinA)) {
       brightnessA = 255;
       brightnessC = 255;
@@ -116,9 +169,15 @@ void loop() {
       brightnessB = 255;
     }
   }
-  //Режим 2 (BLUE indication)
+
+  //Режим "Каждый сам за себя"
   if (currentMode == 2) {
-    digitalWrite( gPin, LOW ); digitalWrite( bPin, HIGH );
+
+    // Отображаем индикацию текущего режима
+    leds[3] = 0x111111; leds[4] = 0x111111; leds[5] = 0x111111;
+    FastLED.show();
+
+    // Подсвечиваем светодиоды
     if (digitalRead(sensorPinA)) {
       brightnessA = 255;
     }
@@ -128,24 +187,5 @@ void loop() {
     if (digitalRead(sensorPinC)) {
       brightnessC = 255;
     }
-  }
-
-  // ПЕРЕКЛЮЧАТЕЛЬ БЕЛОГО ЦВЕТА
-  if (digitalRead(whiteSwitcherPin)) {
-    isWhite = !isWhite;
-    while (digitalRead(whiteSwitcherPin)) {}
-  }
-
-  if (isWhite == 0) {
-    digitalWrite( whiteSwitchPinR, LOW );
-    digitalWrite( whiteSwitchPinG, LOW );
-    digitalWrite( whiteSwitchPinB, LOW );
-    saturation = 255;
-  }
-  if (isWhite == 1) {
-    digitalWrite( whiteSwitchPinR, HIGH );
-    digitalWrite( whiteSwitchPinG, HIGH );
-    digitalWrite( whiteSwitchPinB, HIGH );
-    saturation = 0;
   }
 }
