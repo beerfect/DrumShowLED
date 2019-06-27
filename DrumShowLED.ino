@@ -4,202 +4,122 @@
 #define DATA_PIN 8      // пин подключенный к ленте
 CRGB leds[NUM_LEDS];    // массив для манипуляции светодиодами
 
-// ПОДКЛЮЧЕНИЕ СЛАЙДЕРОВ
-int sliderPinA = A0;        // Куда подключен слайдер А
-int sliderPinB = A1;        // Куда подключен слайдер B
-int sliderPinC = A2;        // Куда подключен слайдер C
-int sliderPinBlackout = A7; // Куда подключен слайдер регулировки длительности затухания
+// ПОДКЛЮЧЕНИЯ УСТРОЙСТВ
+const uint8_t pinSoundSensor_0 = 13;
+const uint8_t pinSoundSensor_1 = 12;
+const uint8_t pinSoundSensor_2 = 11;
+const uint8_t pinColorSlider_0 = A0;
+const uint8_t pinColorSlider_1 = A1;
+const uint8_t pinColorSlider_2 = A2;
+const uint8_t pinFadeSlider = A7;
+const uint8_t pinModeChangeButton = 2;
 
-// ПОДКЛЮЧЕНИЕ ДАТЧИКОВ
-const int sensorPinA = 3; // Куда подключен датчик звука А
-const int sensorPinB = 4; // Куда подключен датчик звука B
-const int sensorPinC = 5; // Куда подключен датчик звука C
+// РАЗМЕТКА ЛЕНТЫ
+const uint8_t partLength = 60;
+const uint8_t startPart_0 = 30;
+const uint8_t startPart_1 = 90;
+const uint8_t startPart_2 = 150;
 
-// ЦВЕТ, ЯРКОСТЬ, ЗАТЕМНЕНИЕ
-int colorA = 0;             // дефолтный цвет отрезка 1
-int colorB = 0;             // дефолтный цвет отрезка 2
-int colorC = 0;             // дефолтный цвет отрезка 3
-float brightnessA = 0;      // дефолтная яркость A
-float brightnessB = 0;      // дефолтная яркость B
-float brightnessC = 0;      // дефолтная яркость C
-int saturationA = 255;      // дефолтная насыщенность ленты А
-int saturationB = 255;      // дефолтная насыщенность ленты B
-int saturationC = 255;      // дефолтная насыщенность ленты C
-
-float blackoutStep = 0.5;     //доступные шаги затемнения: 0.5, 1.5, 1, 3, 5, 15, 17, 42.5
-
-//ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
-const int modeChangePin = 2; // Куда подключена кнопка смены режимов
-int currentMode = 0;         // переменная для переключения режимов
-
-//РАСЧЕТЫ
-int partLength = 60;        // количество светодиодов у каждого барабана
-int startPartA = 30;        // начало первого отрезка
-int startPartB = 90;        // начало второго отрезка
-int startPartC = 150;       // начало третьего отрезка
+//ПЕРЕМЕННЫЕ
+uint8_t currentMode = 0;
+uint8_t hue[3];
+uint8_t saturation[3];
+uint8_t value[3];
+float fadeStep;
 
 void setup() {
-  // ПРОВЕРКА
-    Serial.begin(9600);
-
-  // ДЕКЛАРИРУЕМ БИБЛИОТЕКЕ FASTLED С ЧЕМ ЕЙ РАБОТАТЬ
+  Serial.begin(9600);
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 
-  // ДАТЧИКИ
-  pinMode(sensorPinA, INPUT);
-  pinMode(sensorPinB, INPUT);
-  pinMode(sensorPinC, INPUT);
+//  СЧИТЫВЕАЕМ ПОКАЗАНИЯ С ДАТЧИКОВ
+//  pinMode(pinSoundSensor_0, INPUT);
+//  pinMode(pinSoundSensor_1, INPUT);
+//  pinMode(pinSoundSensor_2, INPUT);
+//  pinMode(pinColorSlider_0, INPUT);
+//  pinMode(pinColorSlider_1, INPUT);
+//  pinMode(pinColorSlider_2, INPUT);
+//  pinMode(pinFadeSlider, INPUT);
+//  pinMode(pinModeChangeButton, INPUT);
 }
 
 void loop() {
-  
-  // СКОРОСТЬ ЗАТЕМНЕНИЯ - ЛОГИКА И ИНДИКАЦИЯ
-  int blackoutMode;
-  int sliderValueBlackout = analogRead(sliderPinBlackout);
-       if (sliderValueBlackout < 8)    {blackoutMode = 0;}
-  else if (sliderValueBlackout < 31)   {blackoutMode = 1;}
-  else if (sliderValueBlackout < 179)  {blackoutMode = 2;}
-  else if (sliderValueBlackout < 464)  {blackoutMode = 3;}
-  else if (sliderValueBlackout < 736)  {blackoutMode = 4;}
-  else if (sliderValueBlackout < 980)  {blackoutMode = 5;}
-  else if (sliderValueBlackout < 1011) {blackoutMode = 6;}
-  else if (sliderValueBlackout < 1024) {blackoutMode = 7;}
-       if (blackoutMode == 7) {blackoutStep = 1.5;   leds[6] = 0x111111; leds[7] = 0x111111; leds[8] = 0x111111; leds[9] = 0x111111; leds[10] = 0x111111; leds[11] = 0x111111; leds[12] = 0x111111;}
-  else if (blackoutMode == 6) {blackoutStep = 3;     leds[6] = 0x111111; leds[7] = 0x111111; leds[8] = 0x111111; leds[9] = 0x111111; leds[10] = 0x111111; leds[11] = 0x111111; leds[12] = 0x110000;}               
-  else if (blackoutMode == 5) {blackoutStep = 6;     leds[6] = 0x111111; leds[7] = 0x111111; leds[8] = 0x111111; leds[9] = 0x111111; leds[10] = 0x111111; leds[11] = 0x110000; leds[12] = 0x110000;}
-  else if (blackoutMode == 4) {blackoutStep = 15;    leds[6] = 0x111111; leds[7] = 0x111111; leds[8] = 0x111111; leds[9] = 0x111111; leds[10] = 0x110000; leds[11] = 0x110000; leds[12] = 0x110000;}
-  else if (blackoutMode == 3) {blackoutStep = 25;    leds[6] = 0x111111; leds[7] = 0x111111; leds[8] = 0x111111; leds[9] = 0x110000; leds[10] = 0x110000; leds[11] = 0x110000; leds[12] = 0x110000;}
-  else if (blackoutMode == 2) {blackoutStep = 42.5;  leds[6] = 0x111111; leds[7] = 0x111111; leds[8] = 0x110000; leds[9] = 0x110000; leds[10] = 0x110000; leds[11] = 0x110000; leds[12] = 0x110000;}
-  else if (blackoutMode == 1) {blackoutStep = 63.75; leds[6] = 0x111111; leds[7] = 0x110000; leds[8] = 0x110000; leds[9] = 0x110000; leds[10] = 0x110000; leds[11] = 0x110000; leds[12] = 0x110000;}
-  else if (blackoutMode == 0) {blackoutStep = 127.5; leds[6] = 0x110000; leds[7] = 0x110000; leds[8] = 0x110000; leds[9] = 0x110000; leds[10] = 0x110000; leds[11] = 0x110000; leds[12] = 0x110000;}
 
-  //  РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ RAINBOW СПЕКТРА ПО ХОДУ СЛАЙДЕРА
-  int sliderValueA = analogRead(sliderPinA);  // получаем текущее значение
-  int sliderValueB = analogRead(sliderPinB);  // получаем текущее значение
-  int sliderValueC = analogRead(sliderPinC);  // получаем текущее значение
-  
-  int colorChangeStep = 4;
+// ДАТЧИКИ ЗВУКА
+//  if (digitalRead(pinSoundSensor_0) == LOW) {Serial.println ("Sound sensor 0");}
+//  if (digitalRead(pinSoundSensor_1) == LOW) {Serial.println ("Sound sensor 1");}
+//  if (digitalRead(pinSoundSensor_2) == LOW) {Serial.println ("Sound sensor 2");}  
 
-       if (sliderValueA < 8)        {colorA -= colorChangeStep;if (colorA < 0) {colorA = 0;}}
-  else if (sliderValueA < 31)   {if (colorA < 32)  {colorA += colorChangeStep;}else if (colorA > 32)  {colorA -= colorChangeStep;}}
-  else if (sliderValueA < 179)  {if (colorA < 64)  {colorA += colorChangeStep;}else if (colorA > 64)  {colorA -= colorChangeStep;}}
-  else if (sliderValueA < 464)  {if (colorA < 96)  {colorA += colorChangeStep;}else if (colorA > 96)  {colorA -= colorChangeStep;}}
-  else if (sliderValueA < 736)  {if (colorA < 128) {colorA += colorChangeStep;}else if (colorA > 128) {colorA -= colorChangeStep;}} 
-  else if (sliderValueA < 980)  {if (colorA < 160) {colorA += colorChangeStep;}else if (colorA > 160) {colorA -= colorChangeStep;}}
-  else if (sliderValueA < 1011) {if (colorA < 192) {colorA += colorChangeStep;}else if (colorA > 192) {colorA -= colorChangeStep;}}
-  else if (sliderValueA < 1023) {if (colorA < 244) {colorA += colorChangeStep;}else if (colorA > 244) {colorA -= colorChangeStep;}}
-  else if (sliderValueA == 1023)    {colorA = 255; }  
-  
-       if (sliderValueB < 8)        {colorB -= colorChangeStep;if (colorB < 0) {colorB = 0;}}
-  else if (sliderValueB < 31)   {if (colorB < 32)  {colorB += colorChangeStep;}else if (colorB > 32)  {colorB -= colorChangeStep;}}
-  else if (sliderValueB < 179)  {if (colorB < 64)  {colorB += colorChangeStep;}else if (colorB > 64)  {colorB -= colorChangeStep;}}
-  else if (sliderValueB < 464)  {if (colorB < 96)  {colorB += colorChangeStep;}else if (colorB > 96)  {colorB -= colorChangeStep;}}
-  else if (sliderValueB < 736)  {if (colorB < 128) {colorB += colorChangeStep;}else if (colorB > 128) {colorB -= colorChangeStep;}} 
-  else if (sliderValueB < 980)  {if (colorB < 160) {colorB += colorChangeStep;}else if (colorB > 160) {colorB -= colorChangeStep;}}
-  else if (sliderValueB < 1011) {if (colorB < 192) {colorB += colorChangeStep;}else if (colorB > 192) {colorB -= colorChangeStep;}}
-  else if (sliderValueB < 1023) {if (colorB < 244) {colorB += colorChangeStep;}else if (colorB > 244) {colorB -= colorChangeStep;}}
-  else if (sliderValueB == 1023){colorB = 255;}
+  // ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
+  if (digitalRead(pinModeChangeButton)) {
+    Serial.print(currentMode);
+    changeMode();
+    Serial.print(" mode changed to: ");
+    Serial.println(currentMode);
+    while (digitalRead(pinModeChangeButton)) {}
+  }
 
-       if (sliderValueC < 8)        {colorC -= colorChangeStep;if (colorC < 0) {colorC = 0;}}
-  else if (sliderValueC < 31)   {if (colorC < 32)  {colorC += colorChangeStep;}else if (colorC > 32)  {colorC -= colorChangeStep;}}
-  else if (sliderValueC < 179)  {if (colorC < 64)  {colorC += colorChangeStep;}else if (colorC > 64)  {colorC -= colorChangeStep;}}
-  else if (sliderValueC < 464)  {if (colorC < 96)  {colorC += colorChangeStep;}else if (colorC > 96)  {colorC -= colorChangeStep;}}
-  else if (sliderValueC < 736)  {if (colorC < 128) {colorC += colorChangeStep;}else if (colorC > 128) {colorC -= colorChangeStep;}} 
-  else if (sliderValueC < 980)  {if (colorC < 160) {colorC += colorChangeStep;}else if (colorC > 160) {colorC -= colorChangeStep;}}
-  else if (sliderValueC < 1011) {if (colorC < 192) {colorC += colorChangeStep;}else if (colorC > 192) {colorC -= colorChangeStep;}}
-  else if (sliderValueC < 1023) {if (colorC < 244) {colorC += colorChangeStep;}else if (colorC > 244) {colorC -= colorChangeStep;}}
-  else if (sliderValueC == 1023)    {colorC = 255;}
+  // ИЗМЕНЕНИЯ ЦВЕТА
+  uint8_t colorSliderValue[3] = {transformSliderValueToColor(analogRead(pinColorSlider_0)), transformSliderValueToColor(analogRead(pinColorSlider_1)), transformSliderValueToColor(analogRead(pinColorSlider_2))};
+  hue[0] = smootlyChangeCurrentColorToSettedOnSlider(hue[0],colorSliderValue[0]);
+  hue[1] = smootlyChangeCurrentColorToSettedOnSlider(hue[1],colorSliderValue[1]);
+  hue[2] = smootlyChangeCurrentColorToSettedOnSlider(hue[2],colorSliderValue[2]);
+  saturation[0] = smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(saturation[0], hue[0]);
+  saturation[1] = smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(saturation[1], hue[1]);
+  saturation[2] = smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(saturation[2], hue[2]);  
+   
+  // FADE СЛАЙДЕР
+  //  Serial.println(analogRead(pinFadeSlider));
 
-  //  ПЛАВНОЕ ПОЯВЛЕНИЕ БЕЛОГО ЦВЕТА В ВЕРХНЕМ ПОЛОЖЕНИИ СЛАЙДЕРА
-  int whiteColorShowSpeed = 30;  
-  if (colorA == 255) {saturationA -= whiteColorShowSpeed;if (saturationA < 0) {saturationA = 0;}
-  } else {saturationA += whiteColorShowSpeed;if (saturationA > 255) {saturationA = 255;}}
-  if (colorB == 255) {saturationB -= whiteColorShowSpeed;if (saturationB < 0) {saturationB = 0;}
-  } else {saturationB += whiteColorShowSpeed;if (saturationB > 255) {saturationB = 255;}}
-  if (colorC == 255) {saturationC -= whiteColorShowSpeed;if (saturationC < 0) {saturationC = 0;}
-  } else {saturationC += whiteColorShowSpeed;if (saturationC > 255) {saturationC = 255;}}
-
-  // ТРИ СВЕТОДИОДА ПОКАЗЫВАЮТ ТЕКУЩИЕ ЦВЕТА ЛЕНТ
-  fill_solid(&(leds[0]), 1, CHSV(colorA, saturationA, 255 ));
-  fill_solid(&(leds[1]), 1, CHSV(colorB, saturationB, 255 ));
-  fill_solid(&(leds[2]), 1, CHSV(colorC, saturationC, 255 ));
+  //ИНТЕРФЕЙС
+  fill_solid(&(leds[0]), 1, CHSV(hue[0], saturation[0], 255 ));
+  fill_solid(&(leds[1]), 1, CHSV(hue[1], saturation[1], 255 ));
+  fill_solid(&(leds[2]), 1, CHSV(hue[2], saturation[2], 255 ));  
   FastLED.show();
+}
 
-  // ЗАТЕМНЯЕМ ВСЕ ЛЕНТЫ У КОТОРЫХ НЕНУЛЕВАЯ ЯРКОСТЬ
-  brightnessA -= blackoutStep; if (brightnessA < 0) {brightnessA = 0;}
-  brightnessB -= blackoutStep; if (brightnessB < 0) {brightnessB = 0;}
-  brightnessC -= blackoutStep; if (brightnessC < 0) {brightnessC = 0;}
-
-  // ЗАЖИГАЕМ ЛЕНТЫ
-  fill_solid(&(leds[startPartA]), partLength, CHSV(colorA, saturationA, brightnessA ));
-  fill_solid(&(leds[startPartB]), partLength, CHSV(colorB, saturationB, brightnessB ));
-  fill_solid(&(leds[startPartC]), partLength, CHSV(colorC, saturationC, brightnessC ));
-  FastLED.show();
-
-  //  ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ
-  if (digitalRead(modeChangePin)) {
-    currentMode += 1;
-    if (currentMode > 2) {
-      currentMode = 0;
-    }
-    while (digitalRead(modeChangePin)) {
-    }
+// ФУНКЦИИ
+void changeMode() {
+  switch (currentMode) {
+    case 0: 
+      currentMode++;  
+      leds[4] = 0x111111; leds[5] = 0x111111; leds[6] = 0x001100;
+      break;
+    case 1:     
+      currentMode++; 
+      leds[4] = 0x111111; leds[5] = 0x111111; leds[6] = 0x111111;
+      break;
+    case 2: 
+      currentMode=0; 
+      leds[4] = 0x001100; leds[5] = 0x111111; leds[6] = 0x001100;
+      break;
   }
+}
 
-  // Режим "Один за всех"
-  if (currentMode == 0) {
+uint8_t transformSliderValueToColor(int value){
+  uint8_t color;
+       if (value == 0)    color = 0;
+  else if (value < 15)    color = 32;
+  else if (value < 92)    color = 64;
+  else if (value < 409)   color = 96;
+  else if (value < 725)   color = 128;
+  else if (value < 981)   color = 160;
+  else if (value < 1011)  color = 192;
+  else if (value < 1022)  color = 244;
+  else                    color = 254; 
+                          return color;
+}
 
-    // Отображаем индикацию
-    leds[3] = 0x001100;
-    leds[4] = 0x111111;
-    leds[5] = 0x001100;
-    FastLED.show();
+uint8_t smootlyChangeCurrentColorToSettedOnSlider(uint8_t currentColor, uint8_t neededColor){
+  uint8_t colorChangeStep = 2;
+  if (currentColor > neededColor) currentColor -= colorChangeStep;
+  else if (currentColor < neededColor) currentColor += colorChangeStep;
+  return currentColor;
+}
 
-    // Подсвечиваем светодиоды
-    if (digitalRead(sensorPinB)) {
-      brightnessA = 255;
-      brightnessB = 255;
-      brightnessC = 255;
-    }
-  }
-
-  // Режим "Крайние vs центральный"
-  if (currentMode == 1) {
-
-    // Отображаем индикацию
-    leds[3] = 0x111111;
-    leds[4] = 0x111111;
-    leds[5] = 0x001100;
-    FastLED.show();
-
-    // Подсвечиваем светодиоды
-    if (digitalRead(sensorPinA)) {
-      brightnessA = 255;
-      brightnessC = 255;
-    }
-    if (digitalRead(sensorPinB)) {
-      brightnessB = 255;
-    }
-  }
-
-  //Режим "Каждый сам за себя"
-  if (currentMode == 2) {
-
-    // Отображаем индикацию
-    leds[3] = 0x111111;
-    leds[4] = 0x111111;
-    leds[5] = 0x111111;
-    FastLED.show();
-
-    // Подсвечиваем светодиоды
-    if (digitalRead(sensorPinA)) {
-      brightnessA = 255;
-    }
-    if (digitalRead(sensorPinB)) {
-      brightnessB = 255;
-    }
-    if (digitalRead(sensorPinC)) {
-      brightnessC = 255;
-    }
-  }
+uint8_t smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(uint8_t saturation,uint8_t hue){
+  uint8_t saturationChangeStep = 5;
+  if      (hue == 254 && saturation > 0)                      saturation -= saturationChangeStep;
+  else if (hue == 254 && saturation <= saturationChangeStep)  saturation = 0;
+  else if (saturation < 255)                                  saturation += saturationChangeStep;
+  return saturation;  
 }
