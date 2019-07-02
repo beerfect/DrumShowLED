@@ -1,33 +1,23 @@
 // Подключаем библиотеку
-#include <FastLED.h>    //подключаем библиотеку
-#define NUM_LEDS 210    // общее количество светодиодов
-#define DATA_PIN 8      // пин подключенный к ленте
-CRGB leds[NUM_LEDS];    // массив для манипуляции светодиодами
+#include <FastLED.h>
+#define NUM_LEDS 210
+#define DATA_PIN 8
+CRGB leds[NUM_LEDS];
 
 // Подключаем устройства
-const uint8_t pinSoundSensor_0 = 13;
-const uint8_t pinSoundSensor_1 = 12;
-const uint8_t pinSoundSensor_2 = 11;
-
-const uint8_t pinColorSlider_0 = A0;
-const uint8_t pinColorSlider_1 = A1;
-const uint8_t pinColorSlider_2 = A2;
-
-const uint8_t pinTouchSensor_0 = 3;
-const uint8_t pinTouchSensor_1 = 4;
-const uint8_t pinTouchSensor_2 = 5;
-
-const uint8_t pinFadeSlider = A7;
+const uint8_t pinTouchSensor[3] = {3, 4, 5};
+const uint8_t pinSoundSensor[3] = {A4, A5, A6};
+const uint8_t pinColorSlider[3] = {A0, A1, A2};
+const uint8_t pinFadeSlider = A3;
 const uint8_t pinModeChangeButton = 2;
 
 // Разметка ленты
 const uint8_t partLength = 60;
-const uint8_t startPart_0 = 30;
-const uint8_t startPart_1 = 90;
-const uint8_t startPart_2 = 150;
+const uint8_t startPart[3] = {30, 90, 150};
 
 // Переменные
 uint8_t currentMode = 0;
+uint8_t colorSliderValue[3];
 uint8_t hue[3];
 uint8_t saturation[3];
 float value[3];
@@ -37,24 +27,9 @@ void setup() {
   Serial.begin(9600);
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
   leds[4] = 0x001100; leds[5] = 0x111111; leds[6] = 0x001100;
-  
-  //  СЧИТЫВЕАЕМ ПОКАЗАНИЯ С ДАТЧИКОВ
-  //  pinMode(pinSoundSensor_0, INPUT);
-  //  pinMode(pinSoundSensor_1, INPUT);
-  //  pinMode(pinSoundSensor_2, INPUT);
-  //  pinMode(pinColorSlider_0, INPUT);
-  //  pinMode(pinColorSlider_1, INPUT);
-  //  pinMode(pinColorSlider_2, INPUT);
-  //  pinMode(pinFadeSlider, INPUT);
-  //  pinMode(pinModeChangeButton, INPUT);
 }
 
 void loop() {
-
-  // Датчики звука (жду аналоговые)
-  //  if (digitalRead(pinSoundSensor_0) == LOW) {Serial.println ("Sound sensor 0");}
-  //  if (digitalRead(pinSoundSensor_1) == LOW) {Serial.println ("Sound sensor 1");}
-  //  if (digitalRead(pinSoundSensor_2) == LOW) {Serial.println ("Sound sensor 2");}
 
   // Переключатель режимов
   if (digitalRead(pinModeChangeButton)) {
@@ -63,48 +38,56 @@ void loop() {
   }
 
   // Вычисляем и плавно изменяем HUE и SATURATION на основании показаний слайдера цвета
-  uint8_t colorSliderValue[3] = {transformSliderValueToColor(analogRead(pinColorSlider_0)), transformSliderValueToColor(analogRead(pinColorSlider_1)), transformSliderValueToColor(analogRead(pinColorSlider_2))};
-  hue[0] = smootlyChangeCurrentColorToSettedOnSlider(hue[0], colorSliderValue[0]);
-  hue[1] = smootlyChangeCurrentColorToSettedOnSlider(hue[1], colorSliderValue[1]);
-  hue[2] = smootlyChangeCurrentColorToSettedOnSlider(hue[2], colorSliderValue[2]);
-  saturation[0] = smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(saturation[0], hue[0]);
-  saturation[1] = smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(saturation[1], hue[1]);
-  saturation[2] = smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(saturation[2], hue[2]);
-
-  // При пиркосновении к датчикам касания устанавливаем VALUE на максимум в зависимости от режима
-  if (digitalRead(pinTouchSensor_0)) {
-    if (currentMode == 1) {value[0] = 255; value[2] = 255;}
-    else if (currentMode == 2) {value[0] = 255;}
+  for (uint8_t i = 0; i < 3; i++) {
+    colorSliderValue[i] = transformSliderValueToColor(analogRead(pinColorSlider[i]));
+    hue[i] = smootlyChangeCurrentColorToSettedOnSlider(hue[i], colorSliderValue[i]);
+    saturation[i] = smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(saturation[i], hue[i]);
   }
 
-  if (digitalRead(pinTouchSensor_1)) {
-    if (currentMode == 0) {value[0] = 255; value[1] = 255; value[2] = 255;}
+  // Слушаем датчики, применяем режимы
+  if (digitalRead(pinTouchSensor[0])) {
+    if (currentMode == 1) {
+      value[0] = 255;
+      value[2] = 255;
+    }
+    else if (currentMode == 2) {
+      value[0] = 255;
+    }
+  }
+
+  if (digitalRead(pinTouchSensor[1])) {
+    if (currentMode == 0) {
+      value[0] = 255;
+      value[1] = 255;
+      value[2] = 255;
+    }
     else value[1] = 255;
   }
 
-  if (digitalRead(pinTouchSensor_2) && currentMode == 2) {
+  if (digitalRead(pinTouchSensor[2]) && currentMode == 2) {
     value[2] = 255;
   }
 
   // Подсвечиваем ленты вычисленными HSV
-  fill_solid(&(leds[startPart_0]), partLength, CHSV(hue[0], saturation[0], value[0]));
-  fill_solid(&(leds[startPart_1]), partLength, CHSV(hue[1], saturation[1], value[1]));
-  fill_solid(&(leds[startPart_2]), partLength, CHSV(hue[2], saturation[2], value[2]));
-  FastLED.show();
+  for (uint8_t i = 0; i < 3; i++) {
+    fill_solid(&(leds[startPart[i]]), partLength, CHSV(hue[i], saturation[i], value[i]));
+  }
 
   // Вычисляем скорость затемнения
   fadeStep = setFadeStepFromFadeSliderValue(analogRead(pinFadeSlider));
-  
-  // Затемняем
-    for (uint8_t i = 0; i < 3; i++){
-      value[i] -= fadeStep;
-      if (value[i] == 0 || value[i] < fadeStep) value[i] = 0;
-    } 
 
-  //ИНТЕРФЕЙС
-  fill_solid(&(leds[0]), 1, CHSV(hue[0], saturation[0], 255 ));
-  fill_solid(&(leds[1]), 1, CHSV(hue[1], saturation[1], 255 ));
-  fill_solid(&(leds[2]), 1, CHSV(hue[2], saturation[2], 255 ));
+  // Затемняем
+  for (uint8_t i = 0; i < 3; i++) {
+    value[i] -= fadeStep;
+    if (value[i] == 0 || value[i] < fadeStep) value[i] = 0;
+  }
+
+  // Интерфейс
+  for (uint8_t i = 0; i < 3; i++) {
+    fill_solid(&(leds[i]), 1, CHSV(hue[i], saturation[i], 255 ));
+  }
+
+  FastLED.show();
 }
 
 // ФУНКЦИИ
@@ -112,22 +95,28 @@ void changeMode() {
   switch (currentMode) {
     case 0:
       currentMode++;
-      leds[4] = 0x111111; leds[5] = 0x111111; leds[6] = 0x001100;
+      leds[4] = 0x111111; 
+      leds[5] = 0x111111; 
+      leds[6] = 0x001100;
       break;
     case 1:
       currentMode++;
-      leds[4] = 0x111111; leds[5] = 0x111111; leds[6] = 0x111111;
+      leds[4] = 0x111111; 
+      leds[5] = 0x111111; 
+      leds[6] = 0x111111;
       break;
     case 2:
       currentMode = 0;
-      leds[4] = 0x001100; leds[5] = 0x111111; leds[6] = 0x001100;
+      leds[4] = 0x001100; 
+      leds[5] = 0x111111; 
+      leds[6] = 0x001100;
       break;
-  }     
+  }
 }
 
 uint8_t transformSliderValueToColor(int sliderValue) {
   uint8_t color;
-  if (sliderValue == 0)    color = 0;
+  if      (sliderValue == 0)    color = 0;
   else if (sliderValue < 15)    color = 32;
   else if (sliderValue < 92)    color = 64;
   else if (sliderValue < 409)   color = 96;
@@ -154,18 +143,19 @@ uint8_t smoothlyRemoveSaturationAtTheTopPositionOfTheColorSlider(uint8_t saturat
   return saturation;
 }
 
-float setFadeStepFromFadeSliderValue(int sliderValue){
+float setFadeStepFromFadeSliderValue(int sliderValue) {
   float fadeStep;
   uint8_t indicator;
-  
-       if (sliderValue < 15)    { fadeStep = 127.5; indicator = 0; }
-  else if (sliderValue < 92)    { fadeStep = 42.5; indicator = 1; }
-  else if (sliderValue < 409)   { fadeStep = 25; indicator = 2; }
-  else if (sliderValue < 725)   { fadeStep = 15; indicator = 3; }
-  else if (sliderValue < 981)   { fadeStep = 6; indicator = 4;}
-  else if (sliderValue < 1011)  { fadeStep = 3; indicator = 5;}
-  else if (sliderValue < 1022)  { fadeStep = 1; indicator = 6;}
-  
+
+  if      (sliderValue < 15)    {fadeStep = 127.5; indicator = 0;}
+  else if (sliderValue < 92)    {fadeStep = 15;    indicator = 1;}
+  else if (sliderValue < 409)   {fadeStep = 6;     indicator = 2;}
+  else if (sliderValue < 725)   {fadeStep = 4;     indicator = 3;}
+  else if (sliderValue < 981)   {fadeStep = 3;     indicator = 4;}
+  else if (sliderValue < 1011)  {fadeStep = 1.5;   indicator = 5;}
+  else if (sliderValue < 1022)  {fadeStep = 1;     indicator = 6;}
+
+  // Интерфейс
   fill_solid(&(leds[8 + indicator]), (6 - indicator), CHSV(0, 255, 100 ));
   fill_solid(&(leds[8]), indicator, CHSV(100, 0, 100 ));
 
