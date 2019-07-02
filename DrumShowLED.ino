@@ -30,7 +30,6 @@ void setup() {
 }
 
 void loop() {
-
   // Переключатель режимов
   if (digitalRead(pinModeChangeButton)) {
     changeMode();
@@ -71,8 +70,9 @@ void loop() {
   // Подсвечиваем ленты вычисленными HSV
   for (uint8_t i = 0; i < 3; i++) {
     fill_solid(&(leds[startPart[i]]), partLength, CHSV(hue[i], saturation[i], value[i]));
-  }
-
+  }  
+  FastLED.show();
+  
   // Вычисляем скорость затемнения
   fadeStep = setFadeStepFromFadeSliderValue(analogRead(pinFadeSlider));
 
@@ -87,7 +87,7 @@ void loop() {
     fill_solid(&(leds[i]), 1, CHSV(hue[i], saturation[i], 255 ));
   }
 
-  FastLED.show();
+  
 }
 
 // ФУНКЦИИ
