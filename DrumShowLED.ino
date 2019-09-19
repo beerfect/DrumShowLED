@@ -11,7 +11,7 @@ const uint8_t pinSoundSensor[qtyDrums] = {A4, A5, A6}; // Пины подклю�
 
 const uint8_t pinColorSlider[qtyDrums] = {A0, A1, A2}; // Пины подключения слйдеров изменения Цвет
 const uint8_t pinFadeSlider = A3;                      // Пин подключения слайдера затемнения
-const uint8_t pinModeChangeButton = 2;                 // Пин подключения кнопки пепеключения режимов
+const uint8_t pinModeChangeButton = 11;                 // Пин подключения кнопки пепеключения режимов
 
 // Разметка ленты
 const uint8_t partLength = 60;                         // Количество светодиодов у каждого барабана
@@ -26,7 +26,7 @@ uint8_t interfaceSaturation[qtyDrums];               // Saturation's для ин
 uint8_t interfaceValue[qtyDrums] = {255, 255, 255};
 float value[qtyDrums];                               // Value's
 float fadeStep;                                      // Скорость затемнения после удара
-uint8_t sensorThreshold[qtyDrums] = {100, 100, 100}; // порог срабатыавния пьезодатчиков
+uint8_t sensorThreshold[qtyDrums] = {30, 30, 303}; // порог срабатыавния пьезодатчиков
 bool drumIsActive[3] = {true, true, true};           // Вкл\Выкл сенсоров
 
 void setup() {
@@ -47,9 +47,7 @@ void loop() {
     while(digitalRead(pinOnOffButton[i])){
     
     }
-   }
-
-  
+   }  
   
   // Переключатель режимов
   if (digitalRead(pinModeChangeButton)) {
@@ -126,11 +124,6 @@ void loop() {
     fill_solid(&(leds[i]), 1, CHSV(neededColor[i], interfaceSaturation[i], interfaceValue[i] ));
   }  
 }
-
-
-
-
-
 
 
 // ФУНКЦИИ
